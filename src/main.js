@@ -1,8 +1,26 @@
 export class First extends HTMLElement {
 	constructor(){
 		super()
+		this.encoder = new TextEncoder()
 		this.shadow_dom = this.attachShadow({ mode: "open"})
 
+		// input template
+		const input = document.createElement("div")
+		input.id = "create-input"
+		input.appendChild(document.createElement("input"))
+		input.appendChild(document.createElement("input"))
+		const button = document.createElement("button")
+		button.onclick = (e) => {
+			input.insertBefore(document.createElement("br"), button)
+			input.insertBefore(document.createElement("input"), button)
+			input.insertBefore(document.createElement("input"), button)
+		}
+		button.textContent = "Add Field"
+
+		input.appendChild(button)
+		this.input_template = input
+
+		// field template
 		const field = document.createElement("div")
 		field.style.display = "block"
 
@@ -49,9 +67,53 @@ export class First extends HTMLElement {
 
 	getItemCallback(item) {
 		this.item = item
-		const test = function(){
-			console.log("my test func")
+
+		const header = document.createElement("div")
+		header.style.minHeight = "50px"
+		header.appendChild(this.input_template)
+		this.shadow_dom.appendChild(header)
+
+		const create_button = document.createElement("button")
+		create_button.textContent = "Create"
+		create_button.onclick = (e) => {
+			const input_div = this.shadow_dom.getElementById("create-input")
+			let item = []
+
+			let key = null
+			for (let field of input_div.childNodes) {
+				if (field.tagName == "INPUT") {
+					if (key == null) {
+						key = field.value
+					} else {
+						item.push([key, field.value])
+						key = null
+					}
+				}
+			}
+			let answer = [1,12,]
+
+			answer = [...answer, ...Array.from(u32_to_be_bytes(item.length))]
+
+			for (let field of item){
+				//pr(this.encoder.encode(field[0]))
+				answer = [...answer, ...Array.from(u32_to_be_bytes(field[0].length))]
+				answer = [...answer, ...this.encoder.encode(field[0])]
+				
+				answer = [...answer, ...Array.from(u32_to_be_bytes(field[1].length))]
+				answer = [...answer, ...this.encoder.encode(field[1])]
+				
+			}
+			pr(answer)
+
+			this.so.send(new Uint8Array(answer))
 		}
+		header.appendChild(create_button)
+
+		const seperator = document.createElement("div")
+		seperator.style.background = "black"
+		seperator.style.height = "4px"
+		this.shadow_dom.appendChild(seperator)
+
 		const main = document.createElement("div")
 		main.addEventListener("click", (e) => {
 			if (e.target.id == "select_button") {
@@ -65,8 +127,6 @@ export class First extends HTMLElement {
 				} else if (e.target.parentNode.state == "str") {
 					e.target.textContent = "u64"
 					e.target.parentNode.state = "u64"
-
-					pr(this.item.u8)
 
 					const u64 = from_be_bytes(this.item.u8[e.target.parentNode.field_num][1])
 					const [val] = Array.from(e.target.parentNode.childNodes).filter( node => node.id == "val")
@@ -88,7 +148,7 @@ export class First extends HTMLElement {
 			const field = this.field_element.cloneNode(true)
 			const [val] = Array.from(field.childNodes).filter( node => node.id == "val")
 			const [key] = Array.from(field.childNodes).filter( node => node.id == "key")
-			key.textContent = this.item.str[field_num]
+			key.textContent = this.item.str[field_num][0]
 			val.textContent = i[1]
 			field.field_num = field_num
 			field.state = "u8"
