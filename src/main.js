@@ -10,6 +10,7 @@ export class First extends HTMLElement {
 		input.appendChild(document.createElement("input"))
 		input.appendChild(document.createElement("input"))
 		const button = document.createElement("button")
+		button.style.marginLeft = "5px"
 		button.onclick = (e) => {
 			input.insertBefore(document.createElement("br"), button)
 			input.insertBefore(document.createElement("input"), button)
@@ -22,6 +23,7 @@ export class First extends HTMLElement {
 
 		// field template
 		const field = document.createElement("div")
+		field.className = "field"
 		field.style.display = "block"
 
 		const key = document.createElement("span")
@@ -74,39 +76,10 @@ export class First extends HTMLElement {
 		this.shadow_dom.appendChild(header)
 
 		const create_button = document.createElement("button")
+		create_button.style.marginTop = "3px"
+		create_button.style.marginBottom = "3px"
 		create_button.textContent = "Create"
-		create_button.onclick = (e) => {
-			const input_div = this.shadow_dom.getElementById("create-input")
-			let item = []
-
-			let key = null
-			for (let field of input_div.childNodes) {
-				if (field.tagName == "INPUT") {
-					if (key == null) {
-						key = field.value
-					} else {
-						item.push([key, field.value])
-						key = null
-					}
-				}
-			}
-			let answer = [1,12,]
-
-			answer = [...answer, ...Array.from(u32_to_be_bytes(item.length))]
-
-			for (let field of item){
-				//pr(this.encoder.encode(field[0]))
-				answer = [...answer, ...Array.from(u32_to_be_bytes(field[0].length))]
-				answer = [...answer, ...this.encoder.encode(field[0])]
-				
-				answer = [...answer, ...Array.from(u32_to_be_bytes(field[1].length))]
-				answer = [...answer, ...this.encoder.encode(field[1])]
-				
-			}
-			pr(answer)
-
-			this.so.send(new Uint8Array(answer))
-		}
+		create_button.onclick = this.create_button
 		header.appendChild(create_button)
 
 		const seperator = document.createElement("div")
@@ -115,6 +88,7 @@ export class First extends HTMLElement {
 		this.shadow_dom.appendChild(seperator)
 
 		const main = document.createElement("div")
+		main.className = "main"
 		main.addEventListener("click", (e) => {
 			if (e.target.id == "select_button") {
 				if (e.target.parentNode.state == "u8") {
@@ -150,6 +124,16 @@ export class First extends HTMLElement {
 			const [key] = Array.from(field.childNodes).filter( node => node.id == "key")
 			key.textContent = this.item.str[field_num][0]
 			val.textContent = i[1]
+
+			const update_input = document.createElement("input")
+			update_input.style.marginLeft = "5px"
+			field.appendChild(update_input)
+			const update_button = document.createElement("button")
+			update_button.onclick = this.update_button
+			update_button.textContent = "Update"
+			update_button.style.marginLeft = "2px"
+			field.appendChild(update_button)
+
 			field.field_num = field_num
 			field.state = "u8"
 
@@ -162,5 +146,59 @@ export class First extends HTMLElement {
 
 	updatedItemCallback(mize_update){
 		console.log("Update")
+	}
+
+	update_button(e){
+		const ar = Array.from(e.target.parentNode.childNodes)
+		const [input] = ar.filter( node => node.tagName == "INPUT")
+		const [key] = Array.from(e.target.parentNode.childNodes).filter( node => node.id == "key")
+		const component_this = e.target.parentNode.parentNode.parentNode.host
+
+		let answer = [1,8,
+			...u64_to_be_bytes(component_this.item.id),
+			...u32_to_be_bytes(1),
+			...u32_to_be_bytes(key.textContent.length),
+			...component_this.encoder.encode(key.textContent),
+			...u32_to_be_bytes(input.value.length),
+			...component_this.encoder.encode(input.value),
+		]
+		pr(key.textContent.length)
+		pr(key.textContent)
+		pr(answer)
+		component_this.so.send(new Uint8Array(answer))
+
+	}
+
+	create_button(e){
+		const input_div = this.shadow_dom.getElementById("create-input")
+		let item = []
+
+		let key = null
+		for (let field of input_div.childNodes) {
+			if (field.tagName == "INPUT") {
+				if (key == null) {
+					key = field.value
+				} else {
+					item.push([key, field.value])
+					key = null
+				}
+			}
+		}
+		let answer = [1,12,]
+
+		answer = [...answer, ...Array.from(u32_to_be_bytes(item.length))]
+
+		for (let field of item){
+			//pr(this.encoder.encode(field[0]))
+			answer = [...answer, ...Array.from(u32_to_be_bytes(field[0].length))]
+			answer = [...answer, ...this.encoder.encode(field[0])]
+			
+			answer = [...answer, ...Array.from(u32_to_be_bytes(field[1].length))]
+			answer = [...answer, ...this.encoder.encode(field[1])]
+			
+		}
+		pr(answer)
+
+		this.so.send(new Uint8Array(answer))
 	}
 }
