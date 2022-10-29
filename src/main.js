@@ -44,7 +44,7 @@ export class First extends HTMLElement {
 
 		const select_button = document.createElement("button")
 		select_button.id = "select_button"
-		select_button.innerHTML = "u8"
+		select_button.innerHTML = "str"
 		select_button.style.verticalAlign = "left"
 		field.appendChild(select_button)
 
@@ -68,6 +68,7 @@ export class First extends HTMLElement {
 	}
 
 	getItemCallback(item) {
+		this.shadow_dom.innerHTML = ""
 		this.item = item
 
 		const header = document.createElement("div")
@@ -91,86 +92,124 @@ export class First extends HTMLElement {
 		main.className = "main"
 		main.addEventListener("click", (e) => {
 			if (e.target.id == "select_button") {
-				if (e.target.parentNode.state == "u8") {
+				if (e.target.parentNode.state == "raw") {
 					e.target.textContent = "str"
 					e.target.parentNode.state = "str"
 
 					const [val] = Array.from(e.target.parentNode.childNodes).filter( node => node.id == "val")
-					val.textContent = this.item.str[e.target.parentNode.field_num][1]
+					val.textContent = this.item.fields[e.target.parentNode.field_num].val
 
 				} else if (e.target.parentNode.state == "str") {
-					e.target.textContent = "u64"
-					e.target.parentNode.state = "u64"
-
-					const u64 = from_be_bytes(this.item.u8[e.target.parentNode.field_num][1])
-					const [val] = Array.from(e.target.parentNode.childNodes).filter( node => node.id == "val")
-					val.textContent = u64
-				} else if (e.target.parentNode.state == "u64") {
-					e.target.textContent = "u8"
-					e.target.parentNode.state = "u8"
+					e.target.textContent = "number"
+					e.target.parentNode.state = "number"
 
 					const [val] = Array.from(e.target.parentNode.childNodes).filter( node => node.id == "val")
+					val.textContent = this.item.fields[e.target.parentNode.field_num].val_as_number
 
-					val.textContent = this.item.u8[e.target.parentNode.field_num][1]
+				} else if (e.target.parentNode.state == "number") {
+					e.target.textContent = "raw"
+					e.target.parentNode.state = "raw"
+
+					const [val] = Array.from(e.target.parentNode.childNodes).filter( node => node.id == "val")
+					val.textContent = this.item.fields[e.target.parentNode.field_num].val_raw
 				}
 			}
 		})
 		//this.shadow_dom.innerHTML = ""
 		this.shadow_dom.appendChild(main)
+
 		let field_num = 0
-		for (i of item.u8){
-			const field = this.field_element.cloneNode(true)
-			const [val] = Array.from(field.childNodes).filter( node => node.id == "val")
-			const [key] = Array.from(field.childNodes).filter( node => node.id == "key")
-			key.textContent = this.item.str[field_num][0]
-			val.textContent = i[1]
+		for (let field of item.fields){
+			const field_element = this.field_element.cloneNode(true)
+
+			const [val] = Array.from(field_element.childNodes).filter( node => node.id == "val")
+			const [key] = Array.from(field_element.childNodes).filter( node => node.id == "key")
+
+			key.textContent = field.key
+			//I want commit to show as a number
+			if (field.key == "_commit"){
+				val.textContent = field.val_as_number
+				field_element.state = "number"
+				let [select_button] = Array.from(field_element.childNodes).filter( el => el.id == "select_button")
+				select_button.textContent = "number"
+			} else {
+				val.textContent = field.val
+				field_element.state = "str"
+			}
 
 			const update_input = document.createElement("input")
 			update_input.style.marginLeft = "5px"
-			field.appendChild(update_input)
+			field_element.appendChild(update_input)
 			const update_button = document.createElement("button")
 			update_button.onclick = this.update_button
 			update_button.textContent = "Update"
 			update_button.style.marginLeft = "2px"
-			field.appendChild(update_button)
+			field_element.appendChild(update_button)
 
-			field.field_num = field_num
-			field.state = "u8"
+			field_element.field_num = field_num
 
-			main.appendChild(field)
+			main.appendChild(field_element)
 			main.appendChild(document.createElement("br"))
 
 			field_num += 1
 		}
 	}
 
-	updatedItemCallback(mize_update){
+	updatedItemCallback(new_item){
 		console.log("Update")
 	}
 
 	update_button(e){
+		const component_this = e.target.parentNode.parentNode.parentNode.host
+
 		const ar = Array.from(e.target.parentNode.childNodes)
 		const [input] = ar.filter( node => node.tagName == "INPUT")
 		const [key] = Array.from(e.target.parentNode.childNodes).filter( node => node.id == "key")
-		const component_this = e.target.parentNode.parentNode.parentNode.host
+		const [val_element] = Array.from(e.target.parentNode.childNodes).filter( node => node.id == "val")
+		const field = component_this.item.fields[val_element.parentNode.field_num].val_raw
 
 		let answer = [1,8,
 			...u64_to_be_bytes(component_this.item.id),
+
+			//num_of_updates
 			...u32_to_be_bytes(1),
+
+			//should repeat
 			...u32_to_be_bytes(key.textContent.length),
-			...component_this.encoder.encode(key.textContent),
+			...mize.encoder.encode(key.textContent),
+
+			//update len
+			...u32_to_be_bytes(9 + input.value.length + 9),
+
+			//### update one: delete everything
+			//update cmd
+			2,
+			//start
+			...u32_to_be_bytes(0),
+			//stop
+			...u32_to_be_bytes(field.length),
+
+			//### update two: add everything
+
+			//update cmd
+			1,
+			//start
+			...u32_to_be_bytes(0),
+			//stop
 			...u32_to_be_bytes(input.value.length),
-			...component_this.encoder.encode(input.value),
+
+			...mize.encoder.encode(input.value),
+			
 		]
-		pr(key.textContent.length)
-		pr(key.textContent)
 		pr(answer)
 		component_this.so.send(new Uint8Array(answer))
 
 	}
 
 	create_button(e){
-		const input_div = this.shadow_dom.getElementById("create-input")
+		const component_this = e.target.parentNode.parentNode.host
+
+		const input_div = component_this.shadow_dom.getElementById("create-input")
 		let item = []
 
 		let key = null
@@ -191,14 +230,13 @@ export class First extends HTMLElement {
 		for (let field of item){
 			//pr(this.encoder.encode(field[0]))
 			answer = [...answer, ...Array.from(u32_to_be_bytes(field[0].length))]
-			answer = [...answer, ...this.encoder.encode(field[0])]
+			answer = [...answer, ...component_this.encoder.encode(field[0])]
 			
 			answer = [...answer, ...Array.from(u32_to_be_bytes(field[1].length))]
-			answer = [...answer, ...this.encoder.encode(field[1])]
+			answer = [...answer, ...component_this.encoder.encode(field[1])]
 			
 		}
-		pr(answer)
 
-		this.so.send(new Uint8Array(answer))
+		component_this.so.send(new Uint8Array(answer))
 	}
 }
