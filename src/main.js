@@ -201,7 +201,6 @@ export class First extends HTMLElement {
 			...mize.encoder.encode(input.value),
 			
 		]
-		pr(answer)
 		component_this.so.send(new Uint8Array(answer))
 
 	}
@@ -228,14 +227,17 @@ export class First extends HTMLElement {
 		answer = [...answer, ...Array.from(u32_to_be_bytes(item.length))]
 
 		for (let field of item){
+			const key_bytes = mize.encoder.encode(field[0])
+			const val_bytes = mize.encoder.encode(field[1])
 			//pr(this.encoder.encode(field[0]))
-			answer = [...answer, ...Array.from(u32_to_be_bytes(field[0].length))]
-			answer = [...answer, ...component_this.encoder.encode(field[0])]
+			answer = [...answer, ...Array.from(u32_to_be_bytes(key_bytes.length))]
+			answer = [...answer, ...key_bytes]
 			
-			answer = [...answer, ...Array.from(u32_to_be_bytes(field[1].length))]
-			answer = [...answer, ...component_this.encoder.encode(field[1])]
+			answer = [...answer, ...Array.from(u32_to_be_bytes(val_bytes.length))]
+			answer = [...answer, ...val_bytes]
 			
 		}
+		pr(answer)
 
 		component_this.so.send(new Uint8Array(answer))
 	}
