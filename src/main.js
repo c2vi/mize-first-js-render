@@ -68,6 +68,8 @@ export class First extends HTMLElement {
 	}
 
 	getItemCallback(item) {
+		pr("callback")
+		pr(item)
 		this.shadow_dom.innerHTML = ""
 		this.item = item
 
@@ -168,8 +170,10 @@ export class First extends HTMLElement {
 		const [val_element] = Array.from(e.target.parentNode.childNodes).filter( node => node.id == "val")
 		const field = component_this.item.fields[val_element.parentNode.field_num].val_raw
 
+
 		let answer = [1,8,
-			...u64_to_be_bytes(component_this.item.id),
+			...mize.encoder.encode(component_this.item.id),
+			47, // a "/"
 
 			//num_of_updates
 			...u32_to_be_bytes(1),
@@ -201,6 +205,7 @@ export class First extends HTMLElement {
 			...mize.encoder.encode(input.value),
 			
 		]
+		pr(answer)
 		component_this.so.send(new Uint8Array(answer))
 
 	}
@@ -237,7 +242,6 @@ export class First extends HTMLElement {
 			answer = [...answer, ...val_bytes]
 			
 		}
-		pr(answer)
 
 		component_this.so.send(new Uint8Array(answer))
 	}
