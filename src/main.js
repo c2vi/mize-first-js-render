@@ -1,4 +1,4 @@
-export class First extends HTMLElement {
+class First extends HTMLElement {
 	constructor(){
 		super()
 		this.encoder = new TextEncoder()
@@ -68,8 +68,6 @@ export class First extends HTMLElement {
 	}
 
 	getItemCallback(item) {
-		pr("callback")
-		pr(item)
 		this.shadow_dom.innerHTML = ""
 		this.item = item
 
@@ -129,7 +127,7 @@ export class First extends HTMLElement {
 
 			key.textContent = field.key
 			//I want commit to show as a number
-			if (field.key == "_commit"){
+			if (field.key == "_commit" || field.key == "num_of_items" || field.key == "next_free_id"){
 				val.textContent = field.val_as_number
 				field_element.state = "number"
 				let [select_button] = Array.from(field_element.childNodes).filter( el => el.id == "select_button")
@@ -157,9 +155,10 @@ export class First extends HTMLElement {
 		}
 	}
 
-	updatedItemCallback(new_item){
-		console.log("Update")
-	}
+	//if you don't define an updateCallback(), the whole component gets rerenderd, when an update happens
+	//updateCallback(update){
+		//console.log("Update")
+	//}
 
 	update_button(e){
 		const component_this = e.target.parentNode.parentNode.parentNode.host
@@ -234,7 +233,6 @@ export class First extends HTMLElement {
 		for (let field of item){
 			const key_bytes = mize.encoder.encode(field[0])
 			const val_bytes = mize.encoder.encode(field[1])
-			//pr(this.encoder.encode(field[0]))
 			answer = [...answer, ...Array.from(u32_to_be_bytes(key_bytes.length))]
 			answer = [...answer, ...key_bytes]
 			
@@ -246,3 +244,4 @@ export class First extends HTMLElement {
 		component_this.so.send(new Uint8Array(answer))
 	}
 }
+mize.defineRender(First)

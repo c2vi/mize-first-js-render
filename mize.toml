@@ -1,0 +1,6 @@
+
+
+[[render]]
+id = "first"
+main = "src/main.js"
+webroot = "src"
