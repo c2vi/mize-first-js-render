@@ -153,6 +153,39 @@ class First extends HTMLElement {
 
 			field_num += 1
 		}
+
+		//add form fields to add a key and val
+		const add_field = document.createElement("div")
+		add_field.style.marginTop = "20px"
+
+		const add_field_key = document.createElement("input")
+		add_field_key.style.margin = "5px"
+
+		const add_field_val = document.createElement("input")
+		add_field_val.style.margin = "5px"
+
+		const add_field_button = document.createElement("button")
+		add_field_button.style.margin = "5px"
+		add_field_button.textContent = "ADD"
+
+		add_field_button.addEventListener("click", (e) => {
+			const key = e.target.parentNode.childNodes[0].value
+			const val = e.target.parentNode.childNodes[1].value
+			let new_item = this.item.clone()
+			new_item.fields.push(new Field([mize.encoder.encode(key), mize.encoder.encode(val)]))
+			this.item.update_raw(new_item)
+		})
+
+		add_field.appendChild(add_field_key)
+		add_field.appendChild(add_field_val)
+		add_field.appendChild(add_field_button)
+
+		const seperator_add_field = document.createElement("div")
+		seperator_add_field.style.background = "black"
+		seperator_add_field.style.height = "4px"
+
+		this.shadow_dom.appendChild(seperator_add_field)
+		this.shadow_dom.appendChild(add_field)
 	}
 
 	//if you don't define an updateCallback(), the whole component gets rerenderd, when an update happens
@@ -161,6 +194,7 @@ class First extends HTMLElement {
 	//}
 
 	update_button(e){
+
 		const component_this = e.target.parentNode.parentNode.parentNode.host
 
 		const ar = Array.from(e.target.parentNode.childNodes)
@@ -169,6 +203,10 @@ class First extends HTMLElement {
 		const [val_element] = Array.from(e.target.parentNode.childNodes).filter( node => node.id == "val")
 		const field = component_this.item.fields[val_element.parentNode.field_num].val_raw
 
+		const item = component_this.item
+		const new_item = item.change_val(key.textContent, mize.encoder.encode(input.value))
+		item.update_raw(new_item)
+		return
 
 		let answer = [1,8,
 			...mize.encoder.encode(component_this.item.id),
@@ -205,7 +243,7 @@ class First extends HTMLElement {
 			
 		]
 		pr(answer)
-		component_this.so.send(new Uint8Array(answer))
+		mize.so.send(new Uint8Array(answer))
 
 	}
 
@@ -241,7 +279,7 @@ class First extends HTMLElement {
 			
 		}
 
-		component_this.so.send(new Uint8Array(answer))
+		mize.so.send(new Uint8Array(answer))
 	}
 }
 mize.defineRender(First)
