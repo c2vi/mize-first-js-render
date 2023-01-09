@@ -207,44 +207,6 @@ class First extends HTMLElement {
 		const new_item = item.change_val(key.textContent, mize.encoder.encode(input.value))
 		item.update_raw(new_item)
 		return
-
-		let answer = [1,8,
-			...mize.encoder.encode(component_this.item.id),
-			47, // a "/"
-
-			//num_of_updates
-			...u32_to_be_bytes(1),
-
-			//should repeat
-			...u32_to_be_bytes(key.textContent.length),
-			...mize.encoder.encode(key.textContent),
-
-			//update len
-			...u32_to_be_bytes(9 + input.value.length + 9),
-
-			//### update one: delete everything
-			//update cmd
-			2,
-			//start
-			...u32_to_be_bytes(0),
-			//stop
-			...u32_to_be_bytes(field.length),
-
-			//### update two: add everything
-
-			//update cmd
-			1,
-			//start
-			...u32_to_be_bytes(0),
-			//stop
-			...u32_to_be_bytes(input.value.length),
-
-			...mize.encoder.encode(input.value),
-			
-		]
-		pr(answer)
-		mize.so.send(new Uint8Array(answer))
-
 	}
 
 	create_button(e){
